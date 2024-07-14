@@ -1,0 +1,286 @@
+openapi: "3.0.0"
+info:
+  title: Song search and playlist generator API
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+paths:
+  /attributes:
+    get:
+      operationId: attributes
+      summary: Lists attributes that can be used as search criteria (frontend can generate search form based on this data).
+      responses:
+        '200':
+          description: Attribute definitions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeDefinitionList'
+  /attributes/{attribute}/info:
+    get:
+      operationId: getAttributeInfo
+      summary: Get the supported attribute value range
+      parameters:
+        - name: attribute
+          in: path
+          description: Attribute name
+          required: true
+          schema:
+            type: string
+        - name: query
+          in: query
+          explode: true
+          description: |
+            Search query. To get the disjunct result set of multiple queries, specify the parameter multiple times.
+            This is to support drill-down search.
+          required: false
+          schema:
+            $ref: '#/components/schemas/Query'
+      responses:
+        '200':
+          description: Supported attribute value range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeInfo'
+  /tracks:
+    get:
+      operationId: listTracks
+      summary: List/search tracks
+      parameters:
+        - name: query
+          in: query
+          explode: true
+          description: |
+            Search query. Can be specified multiple times as a disjunction.
+          required: false
+          schema:
+            $ref: '#/components/schemas/Query'
+      responses:
+        '200':
+          description: Search result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackList'
+  /playlists:
+    get:
+      operationId: listPlaylists
+      summary: List playlists
+      responses:
+        '200':
+          description: List of playlists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistList'
+    post:
+      operationId: createPlaylist
+      summary: Create playlist
+      requestBody:
+        description: Playlist that should be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Playlist'
+      responses:
+        '201':
+          description: Playlist created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+    put:
+      operationId: updatePlaylist
+      summary: Update playlist
+      requestBody:
+        description: Playlist that should be updated
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Playlist'
+      responses:
+        '201':
+          description: Playlist updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
+  /playlists/{playlist}:
+    delete:
+      operationId: deletePlaylist
+      summary: Delete playlist
+      parameters:
+        - name: playlist
+          in: path
+          description: Playlist name
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Playlist created
+
+components:
+  schemas:
+    TrackList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Track'
+      required:
+        - items
+    Track:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        additionalProperties:
+          type: string
+      required:
+        - id
+        - title
+      example:
+        id: "123"
+        artist: Dengue Dengue Dengue
+        title: Serpiente Dorada
+        bpm: 70
+    AttributeDefinitionList:
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeDefinition'
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeTypeDefinition'
+      required:
+        - attributes
+        - types
+      example:
+        attributes:
+          - name: bpm
+            type: int
+            title: BPM
+        types:
+          - name: int
+            operators:
+              - gt
+              - lt
+              - eq
+          - name: string
+            operators:
+              - eq
+              - contains
+              - regex
+          - name: date
+            operators:
+              - eq
+    AttributeTypeDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        operators:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - operators
+    AttributeDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum:
+            - string
+            - int
+            - float
+            - bool
+            - date
+      required:
+        - name
+        - title
+        - type
+    AttributeInfo:
+      type: object
+      description: Supported value ranges
+      properties:
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+        minValue:
+          type: number
+        maxValue:
+          type: number
+      required:
+        - name
+      example:
+        name: bpm
+        minValue: 50
+        maxValue: 123
+    PlaylistList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Playlist'
+      required:
+        - items
+    Playlist:
+      type: object
+      properties:
+        name:
+          type: string
+        created:
+          type: string
+          example: "2024-07-14T16:16:16Z"
+        query:
+          $ref: '#/components/schemas/Query'
+      required:
+        - name
+      example:
+        name: last 7 days
+        created: "2024-07-14T16:16:16Z"
+        query:
+          - added- added:-7d..
+    Query:
+      type: array
+      items:
+        type: object
+        additionalProperties:
+          $ref: '#/components/schemas/Operation'
+      example:
+        - {"genre": {"eq": "Dub"}, "bpm": {"lt": "105"}}
+        - {"genre": {"eq": "Grime"}, "bpm": {"lt": "105"}}
+    Operation:
+      type: object
+      properties:
+        lt:
+          type: string
+        gt:
+          type: string
+        eq:
+          type: string
+        contains:
+          type: string
+        regex:
+          type: string

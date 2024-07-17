@@ -1,0 +1,3 @@
+include README.md
+include beetsplug/websearch/templates/*.html
+include beetsplug/websearch/static/**

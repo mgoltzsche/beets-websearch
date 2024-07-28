@@ -14,6 +14,17 @@ DOCKER_OPTS=--rm -u `id -u`:`id -g` \
 wheel: clean python-container
 	docker run $(DOCKER_OPTS) 'python3 setup.py bdist_wheel'
 
+.PHONY: validate-openapi
+validate-openapi: OPENAPI_FILE=openapi.yaml
+validate-openapi:
+	@echo Validating the OpenAPI spec at $(OPENAPI_FILE)
+	@docker run -t --rm --mount "type=bind,src=$(realpath $(OPENAPI_FILE)),dst=/openapi.yaml" \
+		--entrypoint=sh \
+		stoplight/spectral:6.11.1 \
+		-c "set -ex; \
+			echo 'extends: [\"spectral:oas\"]' > .spectral.yaml; \
+			spectral lint /openapi.yaml"
+
 .PHONY: test
 test: beets-container
 	# Run unit tests

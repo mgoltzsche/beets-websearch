@@ -32,11 +32,16 @@ paths:
           in: query
           explode: true
           description: |
-            Search query. To get the disjunct result set of multiple queries, specify the parameter multiple times.
-            This is to support drill-down search.
+            Search query to support drill-down search.
+            Can be specified multiple times as a union.
+            It accepts a JSON-encoded query object.
           required: false
           schema:
-            $ref: '#/components/schemas/Query'
+            type: array
+            items:
+              type: string
+            example:
+              - '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
       responses:
         '200':
           description: Supported attribute value range
@@ -53,10 +58,16 @@ paths:
           in: query
           explode: true
           description: |
-            Search query. Can be specified multiple times as a disjunction.
+            Search query.
+            Can be specified multiple times as a union.
+            It accepts a JSON-encoded query object.
           required: false
           schema:
-            $ref: '#/components/schemas/Query'
+            type: array
+            items:
+              type: string
+            example:
+              - '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
       responses:
         '200':
           description: Search result

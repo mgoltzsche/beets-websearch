@@ -9,6 +9,8 @@ BUILD_IMG=beets-websearch-build
 DOCKER_OPTS=--rm -u `id -u`:`id -g` \
                 -v "`pwd`:/work" -w /work \
                 --entrypoint sh $(BUILD_IMG) -c
+OPENAPI_GENERATOR_VERSION=131fd518fbfe894cfa23619ede96adab707630d9 # v7.7.0+patch
+
 
 .PHONY: wheel
 wheel: clean python-container
@@ -24,6 +26,14 @@ validate-openapi:
 		-c "set -ex; \
 			echo 'extends: [\"spectral:oas\"]' > .spectral.yaml; \
 			spectral lint /openapi.yaml"
+
+.PHONY: generate
+generate: PKG=beetsplug.websearch
+generate: .openapi-generator ## Generate server stub
+	rm -rf ./build/src-gen
+	docker run -ti --rm -v "`pwd`:/work" -w /work -u `id -u`:`id -g` openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) generate -i ./openapi.yaml -g python-fastapi -o ./build/src-gen --package-name=$(PKG).gen -p sourceFolder= -p fastapiImplementationPackage=$(PKG).controller
+	rm -rf ./beetsplug/websearch/gen
+	cp -r ./build/src-gen/beetsplug/websearch/gen ./beetsplug/websearch/gen
 
 .PHONY: test
 test: beets-container
@@ -79,4 +89,12 @@ clean-data: clean
 .PHONY: python-container
 python-container:
 	echo "$$DOCKERFILE" | docker build --rm -f - -t $(BUILD_IMG) .
+
+.PHONY: .openapi-generator
+.openapi-generator: build/openapi-generator
+	cd build/openapi-generator && git checkout $(OPENAPI_GENERATOR_VERSION)
+	docker build --force-rm -t openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) build/openapi-generator
+
+build/openapi-generator:
+	git clone -c advice.detachedHead=0 https://github.com/OpenAPITools/openapi-generator.git build/openapi-generator
 

@@ -1,4 +1,3 @@
-from flask import Flask
 from beets import config
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand
@@ -28,14 +27,11 @@ class WebSearchPlugin(BeetsPlugin):
         return [c]
 
     def _run_server(self, lib, opts, args):
-        app = create_app()
-        self._configure_app(app, lib)
-        app.run(
-            host=self.config['host'].as_str(),
-            port=self.config['port'].get(int),
-            debug=opts.debug,
-            threaded=True,
-        )
+        from beetsplug.websearch.gen.main import app
+        import uvicorn
+
+        # TODO: configure app: self._configure_app(app, lib)
+        uvicorn.run(app, port=5000, log_level=opts.debug and 'debug' or 'info')
 
     def _configure_app(self, app, lib):
         app.config['lib'] = lib
@@ -44,28 +40,10 @@ class WebSearchPlugin(BeetsPlugin):
         app.config['READONLY'] = True
 
         if self.config['cors']:
-            self._log.info('Enabling CORS with origin {}', self.config['cors'])
-            from flask_cors import CORS
-
-            app.config['CORS_ALLOW_HEADERS'] = 'Content-Type'
-            app.config['CORS_RESOURCES'] = {
-                r'/*': {'origins': self.config['cors'].get(str)}
-            }
-            CORS(
-                app,
-                supports_credentials=self.config['cors_supports_credentials'].get(bool),
-            )
+            # TODO: CORS support
+            ...
 
         if self.config['reverse_proxy']:
-            app.wsgi_app = ReverseProxied(app.wsgi_app)
-
-def create_app():
-    app = Flask(__name__)
-
-    @app.route('/')
-    def home():
-        return 'hello world'
-
-    #app.register_blueprint(bp)
-
-    return app
+            # TODO: make the app reverse-proxy-aware
+            #app.wsgi_app = ReverseProxied(app.wsgi_app)
+            ...

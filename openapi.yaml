@@ -232,6 +232,8 @@ components:
           - name: date
             operators:
               - eq
+              - gt
+              - lt
     AttributeTypeDefinition:
       type: object
       properties:

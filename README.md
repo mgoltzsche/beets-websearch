@@ -22,7 +22,7 @@ plugins:
 
 websearch
   host: '127.0.0.1'
-  port: 8331
+  port: 5000
   cors: ''
   cors_supports_credentials: false
   reverse_proxy: false
@@ -36,7 +36,7 @@ Once the `websearch` plugin is enabled within your beets configuration, you can 
 beet websearch
 ```
 
-You can browse the server at [`http://localhost:8331`](http://localhost:8339).
+You can browse the server at [`http://127.0.0.1:5000`](http://127.0.0.1:5000).
 
 To serve multiple beets web APIs using a single process, you can use the [webrouter plugin](https://github.com/mgoltzsche/beets-webrouter).
 

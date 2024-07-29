@@ -23,10 +23,12 @@ class WebsearchApi(BaseWebsearchApi):
             attributes=[
                 AttributeDefinition(
                     name="genre",
+                    title="Genre",
                     type="string",
                 ),
                 AttributeDefinition(
                     name="bpm",
+                    title="BPM",
                     type="int",
                 ),
             ],

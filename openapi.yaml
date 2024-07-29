@@ -1,15 +1,32 @@
-openapi: "3.0.0"
+openapi: "3.0.1"
 info:
   title: Song search and playlist generator API
+  description: Song search and playlist generator API
   version: 1.0.0
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
+  contact:
+    name: Max Goltzsche
+    url: https://github.com/mgoltzsche/beets-websearch
+    email: max.goltzsche@gmail.com
+
+servers:
+  - url: /
+
+tags:
+  - name: websearch
+
 paths:
   /attributes:
     get:
       operationId: attributes
-      summary: Lists attributes that can be used as search criteria (frontend can generate search form based on this data).
+      summary: Lists attribute definitions
+      description: |
+        Lists attributes that can be used as search criteria.
+        (The frontend could generate a search form based on this data.)
+      tags:
+        - websearch
       responses:
         '200':
           description: Attribute definitions
@@ -20,7 +37,11 @@ paths:
   /attributes/{attribute}/info:
     get:
       operationId: getAttributeInfo
-      summary: Get the supported attribute value range
+      summary: Get the attribute value range
+      description: |
+        Provides the range of values for a given attribute definition and search query.
+      tags:
+        - websearch
       parameters:
         - name: attribute
           in: path
@@ -32,11 +53,16 @@ paths:
           in: query
           explode: true
           description: |
-            Search query. To get the disjunct result set of multiple queries, specify the parameter multiple times.
-            This is to support drill-down search.
+            Search query to support drill-down search.
+            Can be specified multiple times as a union.
+            It accepts a JSON-encoded query object.
           required: false
           schema:
-            $ref: '#/components/schemas/Query'
+            type: array
+            items:
+              type: string
+            example:
+              - '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
       responses:
         '200':
           description: Supported attribute value range
@@ -48,15 +74,24 @@ paths:
     get:
       operationId: listTracks
       summary: List/search tracks
+      description: List and search tracks.
+      tags:
+        - websearch
       parameters:
         - name: query
           in: query
           explode: true
           description: |
-            Search query. Can be specified multiple times as a disjunction.
+            Search query.
+            Can be specified multiple times as a union.
+            It accepts a JSON-encoded query object.
           required: false
           schema:
-            $ref: '#/components/schemas/Query'
+            type: array
+            items:
+              type: string
+            example:
+              - '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
       responses:
         '200':
           description: Search result
@@ -68,6 +103,9 @@ paths:
     get:
       operationId: listPlaylists
       summary: List playlists
+      description: List all playlists.
+      tags:
+        - websearch
       responses:
         '200':
           description: List of playlists
@@ -78,6 +116,9 @@ paths:
     post:
       operationId: createPlaylist
       summary: Create playlist
+      description: Create a new playlist based on the given set of song queries.
+      tags:
+        - websearch
       requestBody:
         description: Playlist that should be created
         required: true
@@ -95,6 +136,9 @@ paths:
     put:
       operationId: updatePlaylist
       summary: Update playlist
+      description: Update an existing playlist.
+      tags:
+        - websearch
       requestBody:
         description: Playlist that should be updated
         required: true
@@ -113,6 +157,9 @@ paths:
     delete:
       operationId: deletePlaylist
       summary: Delete playlist
+      description: Delete a playlist.
+      tags:
+        - websearch
       parameters:
         - name: playlist
           in: path
@@ -258,10 +305,10 @@ components:
       required:
         - name
       example:
-        name: last 7 days
+        name: Slow/dark Dubstep
         created: "2024-07-14T16:16:16Z"
         query:
-          - added- added:-7d..
+          - {"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}
     Query:
       type: array
       items:
@@ -269,7 +316,7 @@ components:
         additionalProperties:
           $ref: '#/components/schemas/Operation'
       example:
-        - {"genre": {"eq": "Dub"}, "bpm": {"lt": "105"}}
+        - {"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}
         - {"genre": {"eq": "Grime"}, "bpm": {"lt": "105"}}
     Operation:
       type: object

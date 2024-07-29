@@ -58,6 +58,11 @@ See [OpenAPI definition](./openapi.yaml).
 
 The following assumes you have [docker](https://docs.docker.com/engine/install/) installed.
 
+Generate the server stub from the [openapi.yaml](./openapi.yaml) (containerized):
+```sh
+make generate
+```
+
 Run the unit tests (containerized):
 ```sh
 make test

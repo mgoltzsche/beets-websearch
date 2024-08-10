@@ -99,11 +99,8 @@ class WebsearchApi(BaseWebsearchApi):
                 Track(
                     id="123",
                     title="Serpiente Dorada",
-                    # TODO: make this work (generated code expects a string currently):
-                    #additional_properties={
-                    #    "genre": "Dub",
-                    #    "bpm": "90",
-                    #},
+                    genre=str("Dub"),
+                    bpm=str("90"),
                 ),
             ],
         )

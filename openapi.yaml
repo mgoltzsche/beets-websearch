@@ -189,8 +189,8 @@ components:
           type: string
         title:
           type: string
-        additionalProperties:
-          type: string
+      additionalProperties:
+        type: string
       required:
         - id
         - title

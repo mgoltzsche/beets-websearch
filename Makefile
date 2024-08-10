@@ -9,7 +9,9 @@ BUILD_IMG=beets-websearch-build
 DOCKER_OPTS=--rm -u `id -u`:`id -g` \
                 -v "`pwd`:/work" -w /work \
                 --entrypoint sh $(BUILD_IMG) -c
-OPENAPI_GENERATOR_VERSION=131fd518fbfe894cfa23619ede96adab707630d9 # v7.7.0+patch
+OPENAPI_FILE=openapi.yaml
+#OPENAPI_GENERATOR_VERSION=131fd518fbfe894cfa23619ede96adab707630d9 # v7.7.0+patch
+OPENAPI_GENERATOR_VERSION=24b70a9200dc8532900a2896154081995c29fa91
 
 
 .PHONY: wheel
@@ -17,7 +19,6 @@ wheel: clean python-container
 	docker run $(DOCKER_OPTS) 'python3 setup.py bdist_wheel'
 
 .PHONY: validate-openapi
-validate-openapi: OPENAPI_FILE=openapi.yaml
 validate-openapi:
 	@echo Validating the OpenAPI spec at $(OPENAPI_FILE)
 	@docker run -t --rm --mount "type=bind,src=$(realpath $(OPENAPI_FILE)),dst=/openapi.yaml" \
@@ -31,7 +32,7 @@ validate-openapi:
 generate: PKG=beetsplug.websearch
 generate: .openapi-generator ## Generate server stub
 	rm -rf ./build/src-gen
-	docker run -ti --rm -v "`pwd`:/work" -w /work -u `id -u`:`id -g` openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) generate -i ./openapi.yaml -g python-fastapi -o ./build/src-gen --package-name=$(PKG).gen -p sourceFolder= -p fastapiImplementationPackage=$(PKG).controller
+	docker --debug run -ti --rm -v "`pwd`:/work" -w /work -u `id -u`:`id -g` openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) generate -i $(OPENAPI_FILE) -g python-fastapi -o ./build/src-gen --package-name=$(PKG).gen -p sourceFolder= -p fastapiImplementationPackage=$(PKG).controller
 	rm -rf ./beetsplug/websearch/gen
 	cp -r ./build/src-gen/beetsplug/websearch/gen ./beetsplug/websearch/gen
 
@@ -96,5 +97,5 @@ python-container:
 	docker build --force-rm -t openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) build/openapi-generator
 
 build/openapi-generator:
-	git clone -c advice.detachedHead=0 https://github.com/OpenAPITools/openapi-generator.git build/openapi-generator
+	git clone -c advice.detachedHead=0 https://github.com/mgoltzsche/openapi-generator.git build/openapi-generator
 

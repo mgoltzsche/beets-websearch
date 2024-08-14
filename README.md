@@ -23,10 +23,6 @@ plugins:
 websearch
   host: '127.0.0.1'
   port: 5000
-  cors: ''
-  cors_supports_credentials: false
-  reverse_proxy: false
-  include_paths: false
 ```
 
 ## Usage
@@ -80,6 +76,11 @@ make beets-sh
 
 A temporary beets library is written to `./data`.
 It can be removed by calling `make clean-data`.
+
+To generate example data, run:
+```sh
+make example-data
+```
 
 To just start the server, run:
 ```sh

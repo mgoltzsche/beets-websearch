@@ -3,6 +3,7 @@ from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand
 from optparse import OptionParser
 from beetsplug.web import ReverseProxied
+from beetsplug.websearch.webapp import create_app, configure_app
 
 
 class WebSearchPlugin(BeetsPlugin):
@@ -11,7 +12,7 @@ class WebSearchPlugin(BeetsPlugin):
         self.config.add(
             {
                 'host': '127.0.0.1',
-                'port': 8331,
+                'port': 5000,
                 'cors': '',
                 'cors_supports_credentials': False,
                 'reverse_proxy': False,
@@ -27,23 +28,10 @@ class WebSearchPlugin(BeetsPlugin):
         return [c]
 
     def _run_server(self, lib, opts, args):
-        from beetsplug.websearch.gen.main import app
+        app = create_app()
+        port = self.config['port'].get(int)
+
         import uvicorn
 
-        # TODO: configure app: self._configure_app(app, lib)
-        uvicorn.run(app, port=5000, log_level=opts.debug and 'debug' or 'info')
-
-    def _configure_app(self, app, lib):
-        app.config['lib'] = lib
-        app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
-        app.config['INCLUDE_PATHS'] = self.config['include_paths']
-        app.config['READONLY'] = True
-
-        if self.config['cors']:
-            # TODO: CORS support
-            ...
-
-        if self.config['reverse_proxy']:
-            # TODO: make the app reverse-proxy-aware
-            #app.wsgi_app = ReverseProxied(app.wsgi_app)
-            ...
+        configure_app(app, lib)
+        uvicorn.run(app, port=port, log_level=opts.debug and 'debug' or 'info')

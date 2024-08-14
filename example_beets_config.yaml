@@ -12,7 +12,7 @@ plugins:
 
 websearch:
   host: 127.0.0.1
-  port: 8339
+  port: 5000
 
 ytimport:
   directory: /data/ytimport

@@ -17,4 +17,5 @@ RUN python3 -m pip install \
 COPY dist /plugin/dist
 RUN python -m pip install /plugin/dist/*
 COPY example_beets_config.yaml /etc/beets/default-config.yaml
+COPY example-data.urls /
 USER beets:beets

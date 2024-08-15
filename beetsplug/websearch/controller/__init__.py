@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Dict, List
 from beets.library import Library, Item
 from beetsplug.websearch.gen.models.attribute_definition_list import AttributeDefinitionList
@@ -11,6 +12,7 @@ from beetsplug.websearch.gen.models.track_list import TrackList
 from beetsplug.websearch.gen.models.track import Track
 from beetsplug.websearch.gen.models.operation import Operation
 from beetsplug.websearch.gen.apis.websearch_api_base import BaseWebsearchApi
+from beetsplug.websearch.query import to_beets_query
 
 
 lib: Library
@@ -108,12 +110,10 @@ class WebsearchApi(BaseWebsearchApi):
     ) -> TrackList:
         """List and search tracks."""
         queries = _queries_from_strs(query)
-        # TODO: implement query
-        q = None
-        loop = asyncio.get_event_loop()
-        items = await loop.run_in_executor(None, _query, q)
+        q = [to_beets_query(q) for q in queries]
+        items = await _query_union(q or [''])
         return TrackList(
-            items=items,
+            items=[_item_to_track_dto(item) for item in items],
         )
 
 
@@ -137,14 +137,22 @@ def _queries_from_strs(querystrs: List[str]) -> List[Dict[str, Operation]]:
         return []
     return [json.loads(q) for q in querystrs]
 
+async def _query_union(queries: List[str]) -> List[Item]:
+    loop = asyncio.get_event_loop()
+    resultsets = [loop.run_in_executor(None, _query, q) for q in queries]
+    itemset = {item.id: item for resultset in resultsets for item in await resultset}
+    items = [item for item in itemset.values()]
+    items.sort(key=lambda i: (i.artist, i.title, i.id))
+    return items
+
 def _query(q: str) -> List[Item]:
-    return [_item_to_track(item) for item in lib.items(query=q)]
+    return lib.items(query=q)
 
 
 # DTO transformations:
 
 
-def _item_to_track(item: Item) -> Track:
+def _item_to_track_dto(item: Item) -> Track:
     return Track(
         id=str(item.id),
         title=item.title,

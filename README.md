@@ -77,7 +77,7 @@ make beets-sh
 A temporary beets library is written to `./data`.
 It can be removed by calling `make clean-data`.
 
-To generate example data, run:
+To download example data, run:
 ```sh
 make example-data
 ```
@@ -86,3 +86,5 @@ To just start the server, run:
 ```sh
 make beets-websearch
 ```
+
+Now you can search tracks via the API, e.g.: [`http://127.0.0.1:5000/tracks?query={%22artist%22:{%22eq%22:%20%22cabaret%20nocturne%22}}&query={%22artist%22:{%22contains%22:%20%22dengue%22},%22title%22:{%22contains%22:%22serpiente%22}}`](http://127.0.0.1:5000/tracks?query={%22artist%22:{%22eq%22:%20%22cabaret%20nocturne%22}}&query={%22artist%22:{%22contains%22:%20%22dengue%22},%22title%22:{%22contains%22:%22serpiente%22}}).

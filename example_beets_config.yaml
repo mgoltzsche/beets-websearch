@@ -16,3 +16,4 @@ websearch:
 
 ytimport:
   directory: /data/ytimport
+  quiet_fallback: asis

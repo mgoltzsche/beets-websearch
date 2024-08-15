@@ -68,12 +68,12 @@ beets-sh beets-websearch: beets-%: beets-container
 		-e PULSE_SERVER=unix:/host/run/user/`id -u`/pulse/native \
 		$(BEETS_IMG) $*
 
-example-data:
+example-data: beets-container
 	mkdir -p data/beets
 	docker run -ti --rm -u `id -u`:`id -g` --network=host \
 		-v "`pwd`/data:/data" \
 		-v "`pwd`/example_beets_config.yaml:/data/beets/config.yaml" \
-		$(BEETS_IMG) ytimport --url-file=https://raw.githubusercontent.com/mgoltzsche/beets-ytimport/main/tests/e2e/example-urls.txt
+		$(BEETS_IMG) ytimport -q --url-file=/example-data.urls
 
 .PHONY: beets-container
 beets-container: wheel

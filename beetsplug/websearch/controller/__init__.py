@@ -67,24 +67,15 @@ class WebsearchApi(BaseWebsearchApi):
     async def get_attribute_info(
         self,
         attribute: str,
-        query: List[str],
+        query: str,
     ) -> AttributeInfo:
-        """Provides the range of values for a given attribute definition and search query. """
-        queries = _queries_from_strs(query)
+        """Provides the range of available values for a given attribute definition and search query. """
+        q = _query_from_str(query)
         # TODO: implement
         return AttributeInfo(
             name="genre",
             values=["Dub", "Dubstep", "House"],
         )
-
-
-    async def create_playlist(
-        self,
-        playlist: Playlist,
-    ) -> Playlist:
-        """Create a new playlist based on the given set of song queries."""
-        # TODO: implement
-        return Playlist()
 
 
     async def delete_playlist(
@@ -106,22 +97,36 @@ class WebsearchApi(BaseWebsearchApi):
 
     async def list_tracks(
         self,
-        query: List[str],
+        query: str,
     ) -> TrackList:
         """List and search tracks."""
-        queries = _queries_from_strs(query)
-        q = [to_beets_query(q) for q in queries]
-        items = await _query_union(q or [''])
+        q = to_beets_query(_query_from_str(query))
+        loop = asyncio.get_event_loop()
+        items = await loop.run_in_executor(None, _query, q)
         return TrackList(
             items=[_item_to_track_dto(item) for item in items],
         )
 
 
-    async def update_playlist(
+    async def get_playlist_tracks(
+        self,
+        playlistId: str,
+    ) -> TrackList:
+        """Get the tracks contained within a playlist."""
+        # TODO: load queries from playlist
+        queries = []
+        q = [to_beets_query(q) for q in queries]
+        items = await _query_union(q)
+        return TrackList(
+            items=[_item_to_track_dto(item) for item in items],
+        )
+
+
+    async def upsert_playlist(
         self,
         playlist: Playlist,
     ) -> Playlist:
-        """Update an existing playlist."""
+        """Create or update a playlist."""
         # TODO: implement
         return playlist
 

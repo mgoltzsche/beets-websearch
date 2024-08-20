@@ -54,6 +54,11 @@ See [OpenAPI definition](./openapi.yaml).
 
 The following assumes you have [docker](https://docs.docker.com/engine/install/) installed.
 
+In case you make changes to the [`openapi.yaml`](./openapi.yaml), you can validate them as follows:
+```sh
+make validate-openapi
+```
+
 Generate the server stub from the [openapi.yaml](./openapi.yaml) (containerized):
 ```sh
 make generate

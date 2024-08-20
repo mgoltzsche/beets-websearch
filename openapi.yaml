@@ -1,7 +1,7 @@
 openapi: "3.0.1"
 info:
-  title: Song search and playlist generator API
-  description: Song search and playlist generator API
+  title: Song search and playlist management API
+  description: Song search and playlist management API
   version: 1.0.0
   license:
     name: Apache 2.0
@@ -9,7 +9,6 @@ info:
   contact:
     name: Max Goltzsche
     url: https://github.com/mgoltzsche/beets-websearch
-    email: max.goltzsche@gmail.com
 
 servers:
   - url: /
@@ -39,7 +38,7 @@ paths:
       operationId: getAttributeInfo
       summary: Get the attribute value range
       description: |
-        Provides the range of values for a given attribute definition and search query.
+        Provides the range of available values for a given attribute definition and search query.
       tags:
         - websearch
       parameters:
@@ -51,18 +50,13 @@ paths:
             type: string
         - name: query
           in: query
-          explode: true
           description: |
             Search query to support drill-down search.
-            Can be specified multiple times as a union.
-            It accepts a JSON-encoded query object.
+            Accepts a JSON-encoded query object.
           required: false
           schema:
-            type: array
-            items:
-              type: string
-            example:
-              - '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
+            type: string
+            example: '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
       responses:
         '200':
           description: Supported attribute value range
@@ -80,18 +74,13 @@ paths:
       parameters:
         - name: query
           in: query
-          explode: true
           description: |
             Search query.
-            Can be specified multiple times as a union.
-            It accepts a JSON-encoded query object.
+            Accepts a JSON-encoded query object.
           required: false
           schema:
-            type: array
-            items:
-              type: string
-            example:
-              - '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
+            type: string
+            example: '{"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}'
       responses:
         '200':
           description: Search result
@@ -113,63 +102,64 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaylistList'
-    post:
-      operationId: createPlaylist
-      summary: Create playlist
-      description: Create a new playlist based on the given set of song queries.
-      tags:
-        - websearch
-      requestBody:
-        description: Playlist that should be created
+  /playlists/{playlistId}:
+    parameters:
+      - name: playlistId
+        in: path
+        description: Playlist name
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Playlist'
-      responses:
-        '201':
-          description: Playlist created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Playlist'
+        schema:
+          type: string
     put:
-      operationId: updatePlaylist
-      summary: Update playlist
-      description: Update an existing playlist.
+      operationId: upsertPlaylist
+      summary: Create or update playlist
+      description: Create or update a playlist.
       tags:
         - websearch
       requestBody:
-        description: Playlist that should be updated
+        description: Playlist that should be created/updated
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Playlist'
       responses:
-        '201':
-          description: Playlist updated
+        '200':
+          description: Playlist created/updated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Playlist'
-  /playlists/{playlist}:
     delete:
       operationId: deletePlaylist
       summary: Delete playlist
       description: Delete a playlist.
       tags:
         - websearch
+      responses:
+        '204':
+          description: Playlist deleted
+  /playlists/{playlistId}/tracks:
+    get:
+      operationId: getPlaylistTracks
+      summary: Get playlist tracks
+      description: Get the tracks contained within a playlist.
+      tags:
+        - websearch
       parameters:
-        - name: playlist
+        - name: playlistId
           in: path
           description: Playlist name
           required: true
           schema:
             type: string
       responses:
-        '201':
-          description: Playlist created
+        '200':
+          description: Playlist contents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackList'
 
 components:
   schemas:
@@ -198,7 +188,7 @@ components:
         id: "123"
         artist: Dengue Dengue Dengue
         title: Serpiente Dorada
-        bpm: 70
+        bpm: "70"
     AttributeDefinitionList:
       type: object
       properties:
@@ -297,17 +287,26 @@ components:
     Playlist:
       type: object
       properties:
-        name:
+        id:
           type: string
+          example: jazz
+        title:
+          type: string
+          example: Jazz
         created:
           type: string
           example: "2024-07-14T16:16:16Z"
         query:
           $ref: '#/components/schemas/Query'
+        url:
+          type: string
+          example: 'http://localhost:5000/m3u/playlists/jazz/playlist.m3u'
       required:
-        - name
+        - id
+        - title
       example:
-        name: Slow/dark Dubstep
+        id: slow-dubstep.m3u
+        title: Slow/dark Dubstep
         created: "2024-07-14T16:16:16Z"
         query:
           - {"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}

@@ -1,6 +1,8 @@
 import asyncio
 import json
+import logging
 from typing import Dict, List
+from datetime import datetime, timezone
 from beets.library import Library, Item
 from beetsplug.websearch.gen.models.attribute_definition_list import AttributeDefinitionList
 from beetsplug.websearch.gen.models.attribute_definition import AttributeDefinition
@@ -13,9 +15,11 @@ from beetsplug.websearch.gen.models.track import Track
 from beetsplug.websearch.gen.models.operation import Operation
 from beetsplug.websearch.gen.apis.websearch_api_base import BaseWebsearchApi
 from beetsplug.websearch.query import to_beets_query
+from beetsplug.websearch.state import Repository
 
 
 lib: Library
+playlists: Repository
 
 class WebsearchApi(BaseWebsearchApi):
 
@@ -80,19 +84,23 @@ class WebsearchApi(BaseWebsearchApi):
 
     async def delete_playlist(
         self,
-        playlist: str,
+        playlistId: str,
     ) -> None:
         """Delete a playlist."""
-        # TODO: implement
-        ...
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, playlists.delete, playlistId)
 
 
     async def list_playlists(
         self,
     ) -> PlaylistList:
         """List all playlists."""
-        # TODO: implement
-        return PlaylistList()
+        loop = asyncio.get_event_loop()
+        items = await loop.run_in_executor(None, playlists.list)
+        items.sort(key=lambda i: (i['title']))
+        return PlaylistList(
+            items=[_playlist_to_dto(p) for p in items],
+        )
 
 
     async def list_tracks(
@@ -100,11 +108,11 @@ class WebsearchApi(BaseWebsearchApi):
         query: str,
     ) -> TrackList:
         """List and search tracks."""
-        q = to_beets_query(_query_from_str(query))
+        q = to_beets_query(_query_from_str(query or "{}"))
         loop = asyncio.get_event_loop()
         items = await loop.run_in_executor(None, _query, q)
         return TrackList(
-            items=[_item_to_track_dto(item) for item in items],
+            items=[_item_to_dto(item) for item in items],
         )
 
 
@@ -113,21 +121,36 @@ class WebsearchApi(BaseWebsearchApi):
         playlistId: str,
     ) -> TrackList:
         """Get the tracks contained within a playlist."""
-        # TODO: load queries from playlist
-        queries = []
-        q = [to_beets_query(q) for q in queries]
-        items = await _query_union(q)
+        items = []
+        loop = asyncio.get_event_loop()
+        playlist = await loop.run_in_executor(None, playlists.get, playlistId)
+        if playlist:
+            q = [to_beets_query(q) for q in playlist['query']]
+            items = await _query_union(q)
         return TrackList(
-            items=[_item_to_track_dto(item) for item in items],
+            items=[_item_to_dto(item) for item in items],
         )
+
+
+    async def get_playlist(
+        self,
+        playlistId: str,
+    ) -> Playlist:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, playlists.get, playlistId)
 
 
     async def upsert_playlist(
         self,
+        playlistId: str,
         playlist: Playlist,
     ) -> Playlist:
         """Create or update a playlist."""
-        # TODO: implement
+        playlist.id = playlistId
+        existing = await self.get_playlist(playlistId)
+        playlist.created = existing and existing['created'] or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, playlists.save, _playlist_from_dto(playlist))
         return playlist
 
 
@@ -157,11 +180,29 @@ def _query(q: str) -> List[Item]:
 # DTO transformations:
 
 
-def _item_to_track_dto(item: Item) -> Track:
+def _item_to_dto(item: Item) -> Track:
     return Track(
         id=str(item.id),
         title=item.title,
         artist=item.artist,
         genre=item.genre,
         bpm=str(item.bpm),
+    )
+
+def _playlist_from_dto(dto: Playlist) -> Dict:
+    return {
+        'id': dto.id,
+        'title': dto.title,
+        'created': dto.created,
+        'query': [{k: {o: v for (o,v) in op.model_dump().items()} for (k,op) in q.items()} for q in dto.query],
+    }
+
+def _playlist_to_dto(p: Dict) -> Playlist:
+    return Playlist(
+        id=p['id'],
+        created=p['created'],
+        title=p['title'],
+        query=[{k: Operation.parse_obj(op) for (k,op) in q.items()} for q in p['query']],
+        # TODO: url
+        url="TODO",
     )

@@ -92,4 +92,6 @@ To just start the server, run:
 make beets-websearch
 ```
 
-Now you can search tracks via the API, e.g.: [`http://127.0.0.1:5000/tracks?query={%22artist%22:{%22eq%22:%20%22cabaret%20nocturne%22}}&query={%22artist%22:{%22contains%22:%20%22dengue%22},%22title%22:{%22contains%22:%22serpiente%22}}`](http://127.0.0.1:5000/tracks?query={%22artist%22:{%22eq%22:%20%22cabaret%20nocturne%22}}&query={%22artist%22:{%22contains%22:%20%22dengue%22},%22title%22:{%22contains%22:%22serpiente%22}}).
+Now you can browse the executable API documentation at [`http://127.0.0.1:5000/docs`](http://127.0.0.1:5000/docs).
+
+Example API call to search tracks: [`http://127.0.0.1:5000/tracks?query={%22artist%22:{%22contains%22:%20%22dengue%22},%22title%22:{%22contains%22:%22serpiente%22}}`](http://127.0.0.1:5000/tracks?query={%22artist%22:{%22contains%22:%20%22dengue%22},%22title%22:{%22contains%22:%22serpiente%22}}).

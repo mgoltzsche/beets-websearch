@@ -17,6 +17,7 @@ class WebSearchPlugin(BeetsPlugin):
                 'cors_supports_credentials': False,
                 'reverse_proxy': False,
                 'include_paths': False,
+                'state_dir': '/tmp',
             }
         )
 

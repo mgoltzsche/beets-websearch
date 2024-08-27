@@ -1,0 +1,88 @@
+openapi: "3.0.1"
+info:
+  title: M3U Playlist Provider
+  description: M3U playlist and audio stream provider API.
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  contact:
+    name: Max Goltzsche
+    url: https://github.com/mgoltzsche/beets-websearch
+
+servers:
+  - url: /
+
+tags:
+  - name: provider
+
+paths:
+  /playlists.m3u:
+    get:
+      operationId: getM3UIndex
+      summary: Get index EXTM3U playlist that lists all playlists
+      description: Get the index playlist that contains URLs pointing to the actual playlists.
+      tags:
+        - provider
+      responses:
+        '200':
+          description: Index playlist in EXTM3U format
+          content:
+            application/x-mpegurl:
+              schema:
+                type: string
+                example: |
+                  #EXTM3U
+                  #EXTINF:0,Playlist 1
+                  http://localhost:5000/playlists/playlist1.m3u
+                  #EXTINF:0,Playlist 2
+                  http://localhost:5000/playlists/playlist2.m3u
+  /playlists/{playlistId}.m3u:
+    get:
+      operationId: getM3UPlaylist
+      summary: Get playlist tracks in EXTM3U format
+      description: Get the tracks contained within a playlist in the EXTM3U format.
+      tags:
+        - provider
+      parameters:
+        - name: playlistId
+          in: path
+          description: Playlist ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Playlist tracks in EXTM3U format
+          content:
+            application/x-mpegurl:
+              schema:
+                type: string
+                example: |
+                  #EXTM3U
+                  #EXTINF:0,Track 1
+                  http://localhost:5000/tracks/1/audio
+                  #EXTINF:0,Track 2
+                  http://localhost:5000/tracks/2/audio
+  /tracks/{id}/audio:
+    get:
+      operationId: getAudioData
+      summary: Get audio data for the given track ID
+      description: Get/stream audio data for the given track ID.
+      tags:
+        - provider
+      parameters:
+        - name: id
+          in: path
+          description: Beets item ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audio data
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary

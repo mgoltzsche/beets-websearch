@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 from typing import Dict, List
 from datetime import datetime, timezone
 from beets.library import Library, Item
@@ -13,7 +12,7 @@ from beetsplug.websearch.gen.models.playlist_list import PlaylistList
 from beetsplug.websearch.gen.models.track_list import TrackList
 from beetsplug.websearch.gen.models.track import Track
 from beetsplug.websearch.gen.models.operation import Operation
-from beetsplug.websearch.gen.apis.websearch_api_base import BaseWebsearchApi
+from beetsplug.websearch.gen.apis.composer_api_base import BaseComposerApi
 from beetsplug.websearch.query import to_beets_query
 from beetsplug.websearch.state import Repository
 
@@ -21,7 +20,7 @@ from beetsplug.websearch.state import Repository
 lib: Library
 playlists: Repository
 
-class WebsearchApi(BaseWebsearchApi):
+class ComposerApi(BaseComposerApi):
 
     async def attributes(
         self,
@@ -74,7 +73,7 @@ class WebsearchApi(BaseWebsearchApi):
         query: str,
     ) -> AttributeInfo:
         """Provides the range of available values for a given attribute definition and search query. """
-        q = _query_from_str(query)
+        q = _query_from_str(query or "{}")
         # TODO: implement
         return AttributeInfo(
             name="genre",
@@ -140,7 +139,7 @@ class WebsearchApi(BaseWebsearchApi):
         return await loop.run_in_executor(None, playlists.get, playlistId)
 
 
-    async def upsert_playlist(
+    async def save_playlist(
         self,
         playlistId: str,
         playlist: Playlist,
@@ -149,9 +148,10 @@ class WebsearchApi(BaseWebsearchApi):
         playlist.id = playlistId
         existing = await self.get_playlist(playlistId)
         playlist.created = existing and existing['created'] or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        playlist_dict = _playlist_from_dto(playlist)
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, playlists.save, _playlist_from_dto(playlist))
-        return playlist
+        await loop.run_in_executor(None, playlists.save, playlist_dict)
+        return _playlist_to_dto(playlist_dict)
 
 
 def _query_to_str(query: Dict[str, Operation]) -> str:
@@ -185,8 +185,11 @@ def _item_to_dto(item: Item) -> Track:
         id=str(item.id),
         title=item.title,
         artist=item.artist,
+        album=item.album,
         genre=item.genre,
         bpm=str(item.bpm),
+        # TODO: generate URL
+        audio_url="TODO",
     )
 
 def _playlist_from_dto(dto: Playlist) -> Dict:
@@ -203,6 +206,6 @@ def _playlist_to_dto(p: Dict) -> Playlist:
         created=p['created'],
         title=p['title'],
         query=[{k: Operation.parse_obj(op) for (k,op) in q.items()} for q in p['query']],
-        # TODO: url
-        url="TODO",
+        # TODO: generate URL
+        m3u_url="TODO",
     )

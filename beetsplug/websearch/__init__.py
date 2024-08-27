@@ -3,7 +3,7 @@ from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand
 from optparse import OptionParser
 from beetsplug.web import ReverseProxied
-from beetsplug.websearch.webapp import create_app, configure_app
+from beetsplug.websearch.app import create_app, configure_app
 
 
 class WebSearchPlugin(BeetsPlugin):

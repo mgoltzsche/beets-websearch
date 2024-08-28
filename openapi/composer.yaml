@@ -14,7 +14,7 @@ servers:
   - url: /
 
 tags:
-  - name: websearch
+  - name: composer
 
 paths:
   /attributes:
@@ -25,7 +25,7 @@ paths:
         Lists attributes that can be used as search criteria.
         (The frontend could generate a search form based on this data.)
       tags:
-        - websearch
+        - composer
       responses:
         '200':
           description: Attribute definitions
@@ -40,7 +40,7 @@ paths:
       description: |
         Provides the range of available values for a given attribute definition and search query.
       tags:
-        - websearch
+        - composer
       parameters:
         - name: attribute
           in: path
@@ -70,7 +70,7 @@ paths:
       summary: List/search tracks
       description: List and search tracks.
       tags:
-        - websearch
+        - composer
       parameters:
         - name: query
           in: query
@@ -94,7 +94,7 @@ paths:
       summary: List playlists
       description: List all playlists.
       tags:
-        - websearch
+        - composer
       responses:
         '200':
           description: List of playlists
@@ -111,11 +111,11 @@ paths:
         schema:
           type: string
     put:
-      operationId: upsertPlaylist
+      operationId: savePlaylist
       summary: Create or update playlist
       description: Create or update a playlist.
       tags:
-        - websearch
+        - composer
       requestBody:
         description: Playlist that should be created/updated
         required: true
@@ -135,7 +135,7 @@ paths:
       summary: Delete playlist
       description: Delete a playlist.
       tags:
-        - websearch
+        - composer
       responses:
         '204':
           description: Playlist deleted
@@ -145,7 +145,7 @@ paths:
       summary: Get playlist tracks
       description: Get the tracks contained within a playlist.
       tags:
-        - websearch
+        - composer
       parameters:
         - name: playlistId
           in: path
@@ -160,6 +160,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrackList'
+
 
 components:
   schemas:
@@ -179,16 +180,26 @@ components:
           type: string
         title:
           type: string
+        artist:
+          type: string
+        album:
+          type: string
+        audioUrl:
+          type: string
+          description: URL pointing to the audio stream provided by the provider API
       additionalProperties:
         type: string
       required:
         - id
+        - artist
         - title
+        - audioUrl
       example:
-        id: "123"
+        id: '123'
         artist: Dengue Dengue Dengue
         title: Serpiente Dorada
-        bpm: "70"
+        bpm: '70'
+        audioUrl: 'http://localhost:5000/api/v1/tracks/123/audio'
     AttributeDefinitionList:
       type: object
       properties:
@@ -298,18 +309,19 @@ components:
           example: "2024-07-14T16:16:16Z"
         query:
           $ref: '#/components/schemas/Query'
-        url:
+        m3uUrl:
           type: string
-          example: 'http://localhost:5000/m3u/playlists/jazz/playlist.m3u'
+          description: URL pointing to the M3U playlist provided by the provider API
       required:
         - id
         - title
       example:
-        id: slow-dubstep.m3u
+        id: slow-dubstep
         title: Slow/dark Dubstep
         created: "2024-07-14T16:16:16Z"
         query:
           - {"genre": {"eq": "Dubstep"}, "bpm": {"lt": "90"}}
+        m3uUrl: 'http://localhost:5000/api/v1/playlists/slow-dubstep/tracks.m3u'
     Query:
       type: array
       items:

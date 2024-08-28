@@ -9,7 +9,7 @@ BUILD_IMG=beets-websearch-build
 DOCKER_OPTS=--rm -u `id -u`:`id -g` \
                 -v "`pwd`:/work" -w /work \
                 --entrypoint sh $(BUILD_IMG) -c
-OPENAPI_FILE=openapi.yaml
+OPENAPI_FILE=./openapi/composer.yaml
 #OPENAPI_GENERATOR_VERSION=131fd518fbfe894cfa23619ede96adab707630d9 # v7.7.0+patch
 OPENAPI_GENERATOR_VERSION=24b70a9200dc8532900a2896154081995c29fa91
 
@@ -19,14 +19,17 @@ wheel: clean python-container
 	docker run $(DOCKER_OPTS) 'python3 setup.py bdist_wheel'
 
 .PHONY: validate-openapi
-validate-openapi:
-	@echo Validating the OpenAPI spec at $(OPENAPI_FILE)
-	@docker run -t --rm --mount "type=bind,src=$(realpath $(OPENAPI_FILE)),dst=/openapi.yaml" \
+validate-openapi: validate-openapi-composer validate-openapi-provider
+
+.PHONY: validate-openapi-composer validate-openapi-provider
+validate-openapi-composer validate-openapi-provider: validate-openapi-%:
+	@echo Validating the OpenAPI spec at ./openapi/$*
+	@docker run -t --rm --mount "type=bind,src=`pwd`/openapi,dst=/openapi" \
 		--entrypoint=sh \
 		stoplight/spectral:6.11.1 \
 		-c "set -ex; \
 			echo 'extends: [\"spectral:oas\"]' > .spectral.yaml; \
-			spectral lint /openapi.yaml"
+			spectral lint /openapi/$*.yaml"
 
 .PHONY: generate
 generate: PKG=beetsplug.websearch

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Dict, List
+from typing import Callable, Dict, List
 from datetime import datetime, timezone
 from beets.library import Library, Item
 from beetsplug.websearch.gen.models.attribute_definition_list import AttributeDefinitionList
@@ -19,13 +19,14 @@ from beetsplug.websearch.state import Repository
 
 lib: Library
 playlists: Repository
+url_for: Callable
 
 class ComposerApi(BaseComposerApi):
 
     async def attributes(
         self,
     ) -> AttributeDefinitionList:
-        """Lists attributes that can be used as search criteria. (The frontend could generate a search form based on this data.) """
+        """Lists attributes that can be used as search criteria."""
         # TODO: implement
         return AttributeDefinitionList(
             attributes=[
@@ -189,7 +190,7 @@ def _item_to_dto(item: Item) -> Track:
         genre=item.genre,
         bpm=str(item.bpm),
         # TODO: generate URL
-        audio_url="TODO",
+        audio_url=url_for('get_audio_data', id=item.id),
     )
 
 def _playlist_from_dto(dto: Playlist) -> Dict:
@@ -207,5 +208,5 @@ def _playlist_to_dto(p: Dict) -> Playlist:
         title=p['title'],
         query=[{k: Operation.parse_obj(op) for (k,op) in q.items()} for q in p['query']],
         # TODO: generate URL
-        m3u_url="TODO",
+        m3u_url=url_for('get_m3_u_playlist', playlistId=p['id']),
     )

@@ -23,7 +23,7 @@ EXTENSION_TO_MIME_TYPE_FALLBACK = {
     '.opus' : 'audio/opus',
 }
 
-def path_to_content_type(path: str):
+def path2contenttype(path: str) -> str:
     result = mimetypes.guess_type(path)[0]
     if result:
         return result
@@ -39,37 +39,28 @@ def path_to_content_type(path: str):
     return DEFAULT_MIME_TYPE
 
 def sendfile(filepath: str, content_range: str) -> StreamingResponse:
+    # TODO: use FileResponse instead, see https://github.com/encode/starlette/pull/2697
     path = Path(filepath)
-
-    # TODO: close file after response was sent
     file = path.open('rb')
-
     file_size = path.stat().st_size
-
     content_length = file_size
     status_code = 200
     headers = {}
 
     if content_range is not None:
         content_range = content_range.strip().lower()
-
         content_ranges = content_range.split('=')[-1]
-
         range_start, range_end, *_ = map(str.strip, (content_ranges + '-').split('-'))
-
         range_start = max(0, int(range_start)) if range_start else 0
         range_end   = min(file_size - 1, int(range_end)) if range_end else file_size - 1
-
         content_length = (range_end - range_start) + 1
-
         file = _ranged(file, start = range_start, end = range_end + 1)
-
         status_code = 206
 
         headers['Content-Range'] = f'bytes {range_start}-{range_end}/{file_size}'
 
     response = StreamingResponse(file,
-        media_type = path_to_content_type(filepath),
+        media_type = path2contenttype(filepath),
         status_code = status_code,
     )
 

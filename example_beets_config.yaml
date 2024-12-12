@@ -9,6 +9,7 @@ paths:
 plugins:
   - websearch
   - ytimport
+  - smartplaylist
 
 websearch:
   host: 127.0.0.1
@@ -17,3 +18,15 @@ websearch:
 ytimport:
   directory: /data/ytimport
   quiet_fallback: asis
+
+smartplaylist:
+  auto: false
+  output: extm3u
+  fields: [id]
+  playlist_dir: /data/playlists
+  relative_to: /data/playlists
+  playlists:
+  - name: all.m3u
+    query: ''
+  - name: subdir/another.m3u
+    query: ''

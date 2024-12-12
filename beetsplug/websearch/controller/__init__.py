@@ -1,25 +1,26 @@
 import asyncio
 import json
 from typing import Callable, Dict, List
-from datetime import datetime, timezone
 from beets.library import Library, Item
 from beetsplug.websearch.gen.models.attribute_definition_list import AttributeDefinitionList
 from beetsplug.websearch.gen.models.attribute_definition import AttributeDefinition
 from beetsplug.websearch.gen.models.attribute_type_definition import AttributeTypeDefinition
 from beetsplug.websearch.gen.models.attribute_info import AttributeInfo
-from beetsplug.websearch.gen.models.playlist import Playlist
-from beetsplug.websearch.gen.models.playlist_list import PlaylistList
+from beetsplug.websearch.gen.models.playlist import Playlist as PlaylistDTO
+from beetsplug.websearch.gen.models.playlist_list import PlaylistList as PlaylistListDTO
 from beetsplug.websearch.gen.models.track_list import TrackList
 from beetsplug.websearch.gen.models.track import Track
 from beetsplug.websearch.gen.models.operation import Operation
 from beetsplug.websearch.gen.apis.composer_api_base import BaseComposerApi
 from beetsplug.websearch.query import to_beets_query
-from beetsplug.websearch.state import Repository
+from beetsplug.websearch.provider import PlaylistProvider, Playlist
+from beetsplug.websearch.provider.custom import CustomPlaylist
 
 
+provider: PlaylistProvider
 lib: Library
-playlists: Repository
 url_for: Callable
+
 
 class ComposerApi(BaseComposerApi):
 
@@ -87,18 +88,16 @@ class ComposerApi(BaseComposerApi):
         playlistId: str,
     ) -> None:
         """Delete a playlist."""
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, playlists.delete, playlistId)
+        await provider.delete_playlist(playlistId)
 
 
     async def list_playlists(
         self,
-    ) -> PlaylistList:
+    ) -> PlaylistListDTO:
         """List all playlists."""
-        loop = asyncio.get_event_loop()
-        items = await loop.run_in_executor(None, playlists.list)
-        items.sort(key=lambda i: (i['title']))
-        return PlaylistList(
+        items = await provider.playlists()
+        items.sort(key=lambda i: (i.title, i.id))
+        return PlaylistListDTO(
             items=[_playlist_to_dto(p) for p in items],
         )
 
@@ -121,38 +120,42 @@ class ComposerApi(BaseComposerApi):
         playlistId: str,
     ) -> TrackList:
         """Get the tracks contained within a playlist."""
-        items = []
-        loop = asyncio.get_event_loop()
-        playlist = await loop.run_in_executor(None, playlists.get, playlistId)
-        if playlist:
-            q = [to_beets_query(q) for q in playlist['query']]
-            items = await _query_union(q)
+        playlist = await provider.playlist(playlistId)
+        if not playlist:
+            raise Exception(f"playlist {playlistId} not found")
         return TrackList(
-            items=[_item_to_dto(item) for item in items],
+            items=[_item_to_dto(item) for item in await playlist.tracks()],
         )
 
 
-    async def get_playlist(
+    async def create_playlist(
         self,
-        playlistId: str,
-    ) -> Playlist:
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, playlists.get, playlistId)
+        playlist: PlaylistDTO,
+    ) -> PlaylistDTO:
+        """Create a playlist."""
+        p = _playlist_from_dto(playlist)
+        await provider.create_playlist(p)
+        return _playlist_to_dto(p)
 
 
-    async def save_playlist(
+    async def update_playlist(
         self,
         playlistId: str,
-        playlist: Playlist,
-    ) -> Playlist:
-        """Create or update a playlist."""
-        playlist.id = playlistId
-        existing = await self.get_playlist(playlistId)
-        playlist.created = existing and existing['created'] or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        playlist_dict = _playlist_from_dto(playlist)
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, playlists.save, playlist_dict)
-        return _playlist_to_dto(playlist_dict)
+        playlist: PlaylistDTO,
+    ) -> PlaylistDTO:
+        """Update a playlist."""
+        if playlist.id != playlistId:
+            raise Exception("playlist ID from path variable differs from playlist ID within body")
+        p = _playlist_from_dto(playlist)
+        await provider.update_playlist(p)
+        return _playlist_to_dto(p)
+
+
+def _query(q: str) -> List[Item]:
+    return lib.items(query=q)
+
+
+# DTO transformations:
 
 
 def _query_to_str(query: Dict[str, Operation]) -> str:
@@ -166,47 +169,36 @@ def _queries_from_strs(querystrs: List[str]) -> List[Dict[str, Operation]]:
         return []
     return [json.loads(q) for q in querystrs]
 
-async def _query_union(queries: List[str]) -> List[Item]:
-    loop = asyncio.get_event_loop()
-    resultsets = [loop.run_in_executor(None, _query, q) for q in queries]
-    itemset = {item.id: item for resultset in resultsets for item in await resultset}
-    items = [item for item in itemset.values()]
-    items.sort(key=lambda i: (i.artist, i.title, i.id))
-    return items
-
-def _query(q: str) -> List[Item]:
-    return lib.items(query=q)
-
-
-# DTO transformations:
-
-
 def _item_to_dto(item: Item) -> Track:
-    return Track(
+    dto = Track(
         id=str(item.id),
         title=item.title,
         artist=item.artist,
-        album=item.album,
-        genre=item.genre,
-        bpm=str(item.bpm),
-        # TODO: generate URL
+        length=item.get('length') or 0,
         audio_url=url_for('get_audio_data', id=item.id),
     )
+    if item.get('album'):
+        dto.album = item.get('album')
+    if item.get('genre'):
+        dto.genre = item.get('genre')
+    if item.get('bpm'):
+        dto.bpm = str(item.get('bpm'))
+    return dto
 
-def _playlist_from_dto(dto: Playlist) -> Dict:
-    return {
-        'id': dto.id,
-        'title': dto.title,
-        'created': dto.created,
-        'query': [{k: {o: v for (o,v) in op.model_dump().items()} for (k,op) in q.items()} for q in dto.query],
-    }
+def _playlist_from_dto(dto: PlaylistDTO) -> CustomPlaylist:
+    return CustomPlaylist(
+        id=dto.id,
+        title=dto.title,
+        created=dto.created,
+        query=dto.query and [{k: {o: v for (o,v) in op.model_dump().items()} for (k,op) in q.items()} for q in dto.query] or None,
+        provider=None,
+    )
 
-def _playlist_to_dto(p: Dict) -> Playlist:
-    return Playlist(
-        id=p['id'],
-        created=p['created'],
-        title=p['title'],
-        query=[{k: Operation.parse_obj(op) for (k,op) in q.items()} for q in p['query']],
-        # TODO: generate URL
-        m3u_url=url_for('get_m3_u_playlist', playlistId=p['id']),
+def _playlist_to_dto(p: Playlist) -> PlaylistDTO:
+    return PlaylistDTO(
+        id=p.id,
+        created=p.created,
+        title=p.title,
+        query=p.query and [{k: Operation.parse_obj(op) for (k,op) in q.items()} for q in p.query] or None,
+        m3u_url=url_for('get_m3u_playlist', playlistId=p.id),
     )

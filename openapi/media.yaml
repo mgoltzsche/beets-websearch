@@ -1,7 +1,7 @@
 openapi: "3.0.1"
 info:
-  title: M3U Playlist Provider
-  description: M3U playlist and audio stream provider API.
+  title: Media Server
+  description: M3U playlist and audio stream server.
   version: 1.0.0
   license:
     name: Apache 2.0
@@ -14,7 +14,7 @@ servers:
   - url: /
 
 tags:
-  - name: provider
+  - name: media
 
 paths:
   /playlists.m3u:
@@ -23,12 +23,22 @@ paths:
       summary: Get index EXTM3U playlist that lists all playlists
       description: Get the index playlist that contains URLs pointing to the actual playlists.
       tags:
-        - provider
+        - media
+      parameters:
+        - name: uri-format
+          in: query
+          description: |
+            A playlist item URI template.
+            Dollar-prefixed item/song field names can be used as placeholders, e.g. `beets:library:track;$id` or `subidy:song:3$id`.
+            `$url` is a built-in placeholder and the default value.
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Index playlist in EXTM3U format
           content:
-            application/x-mpegurl:
+            audio/mpegurl:
               schema:
                 type: string
                 example: |
@@ -40,10 +50,20 @@ paths:
   /playlists/{playlistId}.m3u:
     get:
       operationId: getM3UPlaylist
-      summary: Get playlist tracks in EXTM3U format
+      summary: Get playlist in EXTM3U format
       description: Get the tracks contained within a playlist in the EXTM3U format.
       tags:
-        - provider
+        - media
+      parameters:
+        - name: uri-format
+          in: query
+          description: |
+            A playlist item URI template.
+            Dollar-prefixed item/song field names can be used as placeholders, e.g. `beets:library:track;$id` or `subidy:song:3$id`.
+            `$url` is a built-in placeholder and the default value.
+          required: false
+          schema:
+            type: string
       parameters:
         - name: playlistId
           in: path
@@ -53,9 +73,9 @@ paths:
             type: string
       responses:
         '200':
-          description: Playlist tracks in EXTM3U format
+          description: EXTM3U playlist
           content:
-            application/x-mpegurl:
+            audio/mpegurl:
               schema:
                 type: string
                 example: |
@@ -70,7 +90,7 @@ paths:
       summary: Get audio data for the given track ID
       description: Get/stream audio data for the given track ID.
       tags:
-        - provider
+        - media
       parameters:
         - name: id
           in: path

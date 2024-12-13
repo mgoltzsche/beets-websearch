@@ -13,11 +13,16 @@ class WebSearchPlugin(BeetsPlugin):
             {
                 'host': '127.0.0.1',
                 'port': 5000,
-                'cors': '',
-                'cors_supports_credentials': False,
-                'reverse_proxy': False,
-                'include_paths': False,
-                'state_dir': '/tmp',
+                'provider': {
+                    'm3u': {
+                        'enabled': True,
+                        'dir': None,
+                    },
+                    'db': {
+                        'enabled': True,
+                        'file': '/tmp/playlists.json',
+                    }
+                }
             }
         )
 

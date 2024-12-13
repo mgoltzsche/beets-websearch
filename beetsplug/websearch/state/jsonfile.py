@@ -1,4 +1,5 @@
 import os, json, tempfile, threading
+from datetime import datetime, timezone
 from beetsplug.websearch.state import Repository
 
 
@@ -23,16 +24,37 @@ class JSONFileRepository(Repository):
             self._load_state()
             return self._state.get(id)
 
-    def save(self, obj):
+    def create(self, obj):
         with self._lock:
             self._load_state()
+            id = obj.get('id')
+            if not id:
+                raise Exception('object does not specify id')
+            if id in self._state:
+                raise KeyError(f"object with ID '{id}' already exists")
+            obj['created'] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            self._state[id] = obj
+            self._save_state()
+
+    def update(self, obj):
+        with self._lock:
+            self._load_state()
+            id = obj.get('id')
+            if not id:
+                raise Exception('object does not specify id')
+            existing = self._state.get(id)
+            if not existing:
+                raise KeyError(f"object with ID '{id}' does not exist")
+            obj['created'] = existing['created']
             # TODO: implement optimistic locking
-            self._state[obj['id']] = obj
+            self._state[id] = obj
             self._save_state()
 
     def delete(self, id):
         with self._lock:
             self._load_state()
+            if id not in self._state:
+                raise KeyError(f"object with ID '{id}' does not exist")
             del self._state[id]
             self._save_state()
 

@@ -13,7 +13,11 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def save(self, res: Dict):
+    def create(self, res: Dict):
+        pass
+
+    @abstractmethod
+    def update(self, res: Dict):
         pass
 
     @abstractmethod

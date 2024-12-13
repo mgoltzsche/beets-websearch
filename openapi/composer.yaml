@@ -1,6 +1,6 @@
 openapi: "3.0.1"
 info:
-  title: Song search and playlist management API
+  title: Playlist composer API
   description: Song search and playlist management API
   version: 1.0.0
   license:
@@ -102,6 +102,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaylistList'
+    post:
+      operationId: createPlaylist
+      summary: Create playlist
+      description: Create a new playlist, letting the server generate the ID.
+      tags:
+        - composer
+      requestBody:
+        description: Playlist that should be created/updated
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Playlist'
+      responses:
+        '200':
+          description: Playlist created/updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Playlist'
   /playlists/{playlistId}:
     parameters:
       - name: playlistId
@@ -111,9 +131,9 @@ paths:
         schema:
           type: string
     put:
-      operationId: savePlaylist
-      summary: Create or update playlist
-      description: Create or update a playlist.
+      operationId: updatePlaylist
+      summary: Update playlist
+      description: Update a playlist.
       tags:
         - composer
       requestBody:
@@ -184,20 +204,26 @@ components:
           type: string
         album:
           type: string
+        length:
+          type: number
+          format: float
+          description: Track length in seconds
         audioUrl:
           type: string
-          description: URL pointing to the audio stream provided by the provider API
+          description: URL pointing to the audio stream provided by the media API
       additionalProperties:
         type: string
       required:
         - id
         - artist
         - title
+        - length
         - audioUrl
       example:
         id: '123'
         artist: Dengue Dengue Dengue
         title: Serpiente Dorada
+        length: 350.5
         bpm: '70'
         audioUrl: 'http://localhost:5000/api/v1/tracks/123/audio'
     AttributeDefinitionList:
@@ -311,7 +337,7 @@ components:
           $ref: '#/components/schemas/Query'
         m3uUrl:
           type: string
-          description: URL pointing to the M3U playlist provided by the provider API
+          description: URL pointing to the M3U playlist provided by the media API
       required:
         - id
         - title

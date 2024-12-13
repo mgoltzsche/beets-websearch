@@ -11,7 +11,8 @@ DOCKER_OPTS=--rm -u `id -u`:`id -g` \
                 --entrypoint sh $(BUILD_IMG) -c
 OPENAPI_FILE=./openapi/composer.yaml
 #OPENAPI_GENERATOR_VERSION=131fd518fbfe894cfa23619ede96adab707630d9 # v7.7.0+patch
-OPENAPI_GENERATOR_VERSION=24b70a9200dc8532900a2896154081995c29fa91
+#OPENAPI_GENERATOR_VERSION ?= 73956394f8b004d6ad3f2535b332bbca93f8df2f # v7.7.0+patch
+OPENAPI_GENERATOR_VERSION ?= 94330f0462143a1b54da27af6dd5685ed8673a8c
 
 
 .PHONY: wheel
@@ -35,7 +36,7 @@ validate-openapi-composer validate-openapi-provider: validate-openapi-%:
 generate: PKG=beetsplug.websearch
 generate: .openapi-generator ## Generate server stub
 	rm -rf ./build/src-gen
-	docker --debug run -ti --rm -v "`pwd`:/work" -w /work -u `id -u`:`id -g` openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) generate -i $(OPENAPI_FILE) -g python-fastapi -o ./build/src-gen --package-name=$(PKG).gen -p sourceFolder= -p fastapiImplementationPackage=$(PKG).controller
+	docker --debug run -ti --rm -v "`pwd`:/work" -w /work -u `id -u`:`id -g` openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) generate -i $(OPENAPI_FILE) -g python-fastapi -o ./build/src-gen --package-name=$(PKG).gen -p sourceFolder= -p fastapiImplementationPackage=$(PKG).controller -p legacyDiscriminatorBehavior=false
 	rm -rf ./beetsplug/websearch/gen
 	cp -r ./build/src-gen/beetsplug/websearch/gen ./beetsplug/websearch/gen
 
@@ -103,9 +104,18 @@ python-container:
 
 .PHONY: .openapi-generator
 .openapi-generator: build/openapi-generator
+ifeq ($(OPENAPI_GENERATOR_VERSION),dev)
+	@echo Skipping openapi-generator build since 'dev' version was specified, assuming it was built outside this Makefile
+else
+	@echo Building openapi-generator $(OPENAPI_GENERATOR_VERSION)
 	cd build/openapi-generator && git checkout $(OPENAPI_GENERATOR_VERSION)
 	docker build --force-rm -t openapitools/openapi-generator-cli:local-$(OPENAPI_GENERATOR_VERSION) build/openapi-generator
+endif
 
 build/openapi-generator:
+ifeq ($(OPENAPI_GENERATOR_VERSION),dev)
+	@echo Skip cloning openapi-generator git repo
+else
 	git clone -c advice.detachedHead=0 https://github.com/mgoltzsche/openapi-generator.git build/openapi-generator
+endif
 
